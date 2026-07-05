@@ -1,0 +1,11 @@
+{{- if .Values.basicAuth.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-basic-auth
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  basicAuth:
+    secret: {{ required "basicAuth.secretName is required" .Values.basicAuth.secretName }}
+{{- end }}

@@ -1,0 +1,27 @@
+# image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
+image:
+  tag: "" # set by promote PR
+
+env:
+  - name: GO_ENV
+    value: production
+  - name: BACKEND_URL
+    value: http://api:8080 # same-namespace service
+  - name: PUBLIC_BASE_URL
+    value: https://norviq.org
+  - name: COOKIE_SECURE
+    value: "true"
+  - name: SENTRY_ENVIRONMENT
+    value: production
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 48Mi
+  limits:
+    memory: 96Mi
+
+ingress:
+  hosts:
+    - norviq.org
+    - www.norviq.org

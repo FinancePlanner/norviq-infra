@@ -1,0 +1,193 @@
+# grafana/alloy helm chart values.
+# Grafana Cloud credentials come from the SealedSecret `grafana-cloud`
+# (namespace observability) with keys: PROM_URL, PROM_USER, LOKI_URL,
+# LOKI_USER, TEMPO_URL, TEMPO_USER, GC_API_KEY.
+# Series budget is 10k on the free tier: kube-state-metrics is intentionally
+# absent and cAdvisor is trimmed to a whitelist below.
+
+controller:
+  type: deployment
+  replicas: 1
+
+alloy:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 160Mi
+    limits:
+      memory: 300Mi
+
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+
+  envFrom:
+    - secretRef:
+        name: grafana-cloud
+
+  configMap:
+    content: |-
+      // ---------- Traces: OTLP in (swift-otel) -> Grafana Cloud Tempo ----------
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        output {
+          traces = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      otelcol.processor.batch "default" {
+        output {
+          traces = [otelcol.exporter.otlp.tempo.input]
+        }
+      }
+
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = sys.env("TEMPO_URL")
+          auth     = otelcol.auth.basic.tempo.handler
+        }
+      }
+
+      otelcol.auth.basic "tempo" {
+        username = sys.env("TEMPO_USER")
+        password = sys.env("GC_API_KEY")
+      }
+
+      // ---------- Metrics: app /metrics + cAdvisor + node -> Mimir ----------
+      prometheus.remote_write "grafana_cloud" {
+        endpoint {
+          url = sys.env("PROM_URL")
+          basic_auth {
+            username = sys.env("PROM_USER")
+            password = sys.env("GC_API_KEY")
+          }
+        }
+      }
+
+      // Pods annotated prometheus.io/scrape: "true" (the api's hand-rolled
+      // /metrics endpoint, PROMETHEUS_ENABLED=true).
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "scrape_pods" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          regex         = "true"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
+          regex         = "(.+)"
+          target_label  = "__metrics_path__"
+        }
+        rule {
+          source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          regex         = "([^:]+)(?::\\d+)?;(\\d+)"
+          replacement   = "$1:$2"
+          target_label  = "__address__"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label  = "app"
+        }
+      }
+
+      prometheus.scrape "pods" {
+        targets         = discovery.relabel.scrape_pods.output
+        scrape_interval = "60s"
+        forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+      }
+
+      // cAdvisor via kubelet, trimmed to the series that matter on one node.
+      discovery.kubernetes "nodes" {
+        role = "node"
+      }
+
+      prometheus.scrape "cadvisor" {
+        targets         = discovery.kubernetes.nodes.targets
+        scheme          = "https"
+        metrics_path    = "/metrics/cadvisor"
+        scrape_interval = "60s"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          insecure_skip_verify = true
+        }
+        forward_to = [prometheus.relabel.cadvisor_trim.receiver]
+      }
+
+      prometheus.relabel "cadvisor_trim" {
+        rule {
+          source_labels = ["__name__"]
+          regex         = "container_memory_working_set_bytes|container_cpu_usage_seconds_total|container_network_receive_bytes_total|container_network_transmit_bytes_total|kube_pod_container_status_restarts_total"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["container"]
+          regex         = "^$|POD"
+          action        = "drop"
+        }
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+      }
+
+      // Host metrics (node_exporter equivalent, built in).
+      prometheus.exporter.unix "host" {
+        set_collectors = ["cpu", "meminfo", "diskstats", "filesystem", "loadavg", "netdev"]
+      }
+
+      prometheus.scrape "host" {
+        targets         = prometheus.exporter.unix.host.targets
+        scrape_interval = "60s"
+        forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+      }
+
+      // ---------- Logs: all pod stdout/stderr -> Grafana Cloud Loki ----------
+      loki.write "grafana_cloud" {
+        endpoint {
+          url = sys.env("LOKI_URL")
+          basic_auth {
+            username = sys.env("LOKI_USER")
+            password = sys.env("GC_API_KEY")
+          }
+        }
+      }
+
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label  = "app"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.write.grafana_cloud.receiver]
+      }
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true

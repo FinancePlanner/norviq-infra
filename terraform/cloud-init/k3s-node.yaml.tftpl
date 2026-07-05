@@ -1,0 +1,78 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - systemd-zram-generator
+  - curl
+  - open-iscsi
+
+write_files:
+  # zram swap: zstd, sized to RAM. Mandatory on 4 GB — Swift services have
+  # spiky RSS during image pulls and migrations.
+  - path: /etc/systemd/zram-generator.conf
+    content: |
+      [zram0]
+      zram-size = ram
+      compression-algorithm = zstd
+      swap-priority = 100
+
+  - path: /etc/sysctl.d/99-norviq.conf
+    content: |
+      vm.swappiness = 180
+      vm.page-cluster = 0
+      vm.watermark_scale_factor = 125
+      fs.inotify.max_user_instances = 512
+      fs.inotify.max_user_watches = 262144
+
+  # Waits for the Terraform-attached volume, formats it once (ext4 label
+  # check), and mounts it at /data for the Postgres static local PV.
+  - path: /usr/local/sbin/mount-data-volume.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      DEVICE="/dev/disk/by-id/scsi-0HC_Volume_${volume_id}"
+      for _ in $(seq 1 60); do
+        [ -e "$DEVICE" ] && break
+        sleep 2
+      done
+      if [ ! -e "$DEVICE" ]; then
+        echo "volume device not found: $DEVICE" >&2
+        exit 1
+      fi
+      if ! blkid "$DEVICE" >/dev/null 2>&1; then
+        mkfs.ext4 -L norviq-data "$DEVICE"
+      fi
+      mkdir -p /data
+      if ! grep -q "HC_Volume_${volume_id}" /etc/fstab; then
+        echo "$DEVICE /data ext4 defaults,nofail 0 2" >> /etc/fstab
+      fi
+      mountpoint -q /data || mount /data
+      mkdir -p /data/pg /data/backups
+
+runcmd:
+  # 2 GB disk swapfile as last-resort overflow behind zram (lower priority).
+  - |
+    if [ ! -f /swapfile ]; then
+      fallocate -l 2G /swapfile
+      chmod 600 /swapfile
+      mkswap /swapfile
+      echo '/swapfile none swap sw,pri=10 0 0' >> /etc/fstab
+    fi
+  - sysctl --system
+  - systemctl daemon-reload
+  - systemctl start systemd-zram-setup@zram0.service || true
+  - swapon -a
+  - /usr/local/sbin/mount-data-volume.sh
+  # Pinned k3s, trimmed for 4 GB: no metrics-server, kubelet reservations,
+  # aggressive image GC, hard eviction before the OOM killer gets involved.
+  - |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server \
+      --disable metrics-server \
+      --kubelet-arg=system-reserved=cpu=200m,memory=512Mi \
+      --kubelet-arg=eviction-hard=memory.available<200Mi,nodefs.available<10% \
+      --kubelet-arg=image-gc-high-threshold=60 \
+      --kubelet-arg=image-gc-low-threshold=45 \
+      --kubelet-arg=max-pods=40 \
+      --write-kubeconfig-mode 600

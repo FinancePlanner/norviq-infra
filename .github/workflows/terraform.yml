@@ -1,0 +1,32 @@
+# fmt + validate on every PR touching terraform/. Plan/apply stay local
+# (HCP workspace runs in Local execution mode; the hcloud token never lives
+# in GitHub).
+name: Terraform Checks
+
+on:
+  pull_request:
+    paths: ["terraform/**"]
+  push:
+    branches: [main]
+    paths: ["terraform/**"]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.7"
+
+      - name: fmt
+        run: terraform fmt -check -recursive -diff
+
+      - name: validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate

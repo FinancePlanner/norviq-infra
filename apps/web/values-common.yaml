@@ -1,0 +1,25 @@
+image:
+  repository: ghcr.io/financeplanner/stockplanweb
+
+port: 6969
+envFromSecret: web-env
+
+# Go SSR app has no dedicated health route; /login serves as the probe target
+# (same as the legacy deploy script).
+probes:
+  readiness:
+    path: /login
+    initialDelaySeconds: 3
+    periodSeconds: 10
+    failureThreshold: 6
+  liveness:
+    path: /login
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    failureThreshold: 3
+
+migrate:
+  enabled: false
+
+ingress:
+  clusterIssuer: letsencrypt-prod

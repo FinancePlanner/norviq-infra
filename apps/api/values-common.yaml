@@ -1,0 +1,29 @@
+image:
+  repository: ghcr.io/financeplanner/financebackend
+
+port: 8080
+envFromSecret: api-env
+
+probes:
+  readiness:
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+  liveness:
+    path: /health/live
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    failureThreshold: 3
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: /metrics
+
+migrate:
+  enabled: true
+  args: ["migrate", "--yes"]
+
+ingress:
+  clusterIssuer: letsencrypt-prod

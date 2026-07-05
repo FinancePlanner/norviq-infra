@@ -1,0 +1,55 @@
+# Defaults — every release overrides via apps/<svc>/values-*.yaml
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+port: 8080
+
+# Plain (non-secret) env vars: [{name: FOO, value: bar}]
+env: []
+
+# Name of the (Sealed)Secret in the release namespace with the secret env vars
+envFromSecret: ""
+
+podAnnotations: {}
+
+probes:
+  readiness:
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+  liveness:
+    path: /health/live
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+ingress:
+  enabled: true
+  className: traefik
+  clusterIssuer: letsencrypt-prod
+  hosts: []          # first host names the TLS secret
+  annotations: {}
+
+# Renders a Traefik basicAuth Middleware and attaches it to the ingress.
+# The referenced secret must contain an htpasswd `users` key (SealedSecret).
+basicAuth:
+  enabled: false
+  secretName: ""
+
+# Fluent migrations as ArgoCD PreSync hook; a pre-migration pg_dump lands on
+# the durable volume (hostPath /data/backups) before migrations run.
+migrate:
+  enabled: false
+  args: ["migrate", "--yes"]
+  backupHostPath: /data/backups

@@ -1,0 +1,56 @@
+# Production gate: copies the current staging image tag into
+# values-production.yaml and opens a PR. Merging the PR is the manual
+# approval — ArgoCD deploys the merge.
+name: Promote to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Service to promote
+        required: true
+        type: choice
+        options: [api, web, both]
+        default: api
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy staging tags to production values
+        id: bump
+        run: |
+          services="${{ inputs.service }}"
+          [ "$services" = "both" ] && services="api web"
+          summary=""
+          for svc in $services; do
+            tag="$(yq '.image.tag' "apps/$svc/values-staging.yaml")"
+            if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+              echo "no staging tag for $svc" >&2
+              exit 1
+            fi
+            yq -i ".image.tag = \"$tag\"" "apps/$svc/values-production.yaml"
+            summary="$summary $svc:${tag:0:12}"
+          done
+          echo "summary=${summary# }" >> "$GITHUB_OUTPUT"
+
+      - name: Open promote PR
+        run: |
+          branch="promote/$(date -u +%Y%m%d-%H%M%S)"
+          git config user.name "norviq-ci"
+          git config user.email "ci@norviq.org"
+          git checkout -b "$branch"
+          git add apps/*/values-production.yaml
+          git commit -m "Promote to production: ${{ steps.bump.outputs.summary }}"
+          git push origin "$branch"
+          gh pr create \
+            --title "Promote to production: ${{ steps.bump.outputs.summary }}" \
+            --body "$(printf 'Staging tag(s) promoted to production values.\n\nMerging this PR deploys to the production namespace via ArgoCD.\n\nRollback: revert this PR.')"
+        env:
+          GH_TOKEN: ${{ github.token }}

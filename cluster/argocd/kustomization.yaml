@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - namespace.yaml
+  # Core install: application-controller, repo-server, redis. No UI server,
+  # no dex, no notifications. Interact via `argocd --core` or kubectl.
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.4/manifests/core-install.yaml
+
+patches:
+  - path: patches/resource-limits.yaml
+    target:
+      kind: StatefulSet
+      name: argocd-application-controller
+  - path: patches/repo-server-limits.yaml
+    target:
+      kind: Deployment
+      name: argocd-repo-server
+  - path: patches/redis-limits.yaml
+    target:
+      kind: Deployment
+      name: argocd-redis
+  # ApplicationSet controller ships in core-install but app-of-apps doesn't
+  # need it — scale to zero to save ~60 MB.
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-applicationset-controller
+      spec:
+        replicas: 0

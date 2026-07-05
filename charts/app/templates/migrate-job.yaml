@@ -1,0 +1,72 @@
+{{- if .Values.migrate.enabled }}
+# Runs before every sync (PreSync). If migrations fail, the sync fails and the
+# previous ReplicaSet keeps serving. The initContainer drops a pg_dump on the
+# durable volume first, so a bad migration is always recoverable.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrate
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: pre-migration-backup
+          image: postgres:18-alpine
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              export PGPASSWORD="$DATABASE_PASSWORD"
+              pg_dump -Fc -h "$DATABASE_HOST" -U "$DATABASE_USERNAME" "$DATABASE_NAME" \
+                -f "/backups/pre-migrate-{{ .Release.Namespace }}-$(date -u +%Y%m%d-%H%M%S).dump"
+          {{- if .Values.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.envFromSecret }}
+          {{- end }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: backups
+              mountPath: /backups
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}"
+          args:
+            {{- toYaml .Values.migrate.args | nindent 12 }}
+          {{- if .Values.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.envFromSecret }}
+          {{- end }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: backups
+          hostPath:
+            path: {{ .Values.migrate.backupHostPath }}
+            type: DirectoryOrCreate
+{{- end }}

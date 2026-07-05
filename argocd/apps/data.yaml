@@ -1,0 +1,25 @@
+# Production-critical: no automated prune. Postgres/Redis changes sync
+# automatically but resource deletion requires a manual `argocd app sync`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: data
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/FinancePlanner/norviq-infra.git
+    targetRevision: main
+    path: apps/data
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data
+  syncPolicy:
+    automated:
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

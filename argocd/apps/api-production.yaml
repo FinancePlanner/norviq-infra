@@ -1,0 +1,31 @@
+# Automated sync, but the deploy gate is upstream: image tags only reach
+# values-production.yaml through a merged promote PR.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/FinancePlanner/norviq-infra.git
+    targetRevision: main
+    path: charts/app
+    helm:
+      releaseName: api
+      valueFiles:
+        - ../../apps/api/values-common.yaml
+        - ../../apps/api/values-production.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

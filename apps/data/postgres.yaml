@@ -1,0 +1,121 @@
+# Single Postgres instance, two databases (production + staging), data on the
+# Terraform-attached hcloud volume (/data/pg) via a static local PV — the
+# volume survives server destruction and re-attaches to a rebuilt node.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pg-data
+spec:
+  capacity:
+    storage: 8Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  local:
+    path: /data/pg
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - norviq-green # = terraform server_name
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pg-data
+  namespace: data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  volumeName: pg-data
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-initdb
+  namespace: data
+data:
+  # Runs once on first initdb only. POSTGRES_DB creates stockplan_production;
+  # this adds the staging database owned by the same user.
+  01-staging-db.sh: |
+    #!/bin/sh
+    set -e
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres \
+      -c "CREATE DATABASE stockplan_staging OWNER \"$POSTGRES_USER\";"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: data
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          args:
+            - -c
+            - shared_buffers=128MB
+            - -c
+            - max_connections=50
+          env:
+            - name: POSTGRES_DB
+              value: stockplan_production
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          envFrom:
+            - secretRef:
+                name: postgres-credentials # POSTGRES_USER, POSTGRES_PASSWORD
+          ports:
+            - containerPort: 5432
+              name: pg
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\""]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 400Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pg-data
+        - name: initdb
+          configMap:
+            name: pg-initdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: data
+spec:
+  ports:
+    - port: 5432
+      targetPort: pg
+  selector:
+    app.kubernetes.io/name: postgres

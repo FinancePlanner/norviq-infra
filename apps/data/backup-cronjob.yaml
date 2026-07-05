@@ -1,0 +1,173 @@
+# Nightly: pg_dump both databases -> age-encrypt -> rclone to Hetzner
+# Storage Box. Date-based retention via --min-age (no filename-glob games).
+# Secret `backup-config` (namespace data) provides:
+#   RCLONE_CONFIG_STORAGEBOX_* vars (SFTP remote) and AGE_PUBLIC_KEY.
+# The age PRIVATE key lives only offline (password manager) — never in-cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-script
+  namespace: data
+data:
+  backup.sh: |
+    #!/bin/sh
+    set -eu
+    apk add --no-cache rclone age >/dev/null
+
+    ts="$(date -u +%Y%m%d-%H%M%S)"
+    export PGPASSWORD="$POSTGRES_PASSWORD"
+
+    for db in stockplan_production stockplan_staging; do
+      out="/tmp/${db}-${ts}.dump.age"
+      pg_dump -Fc -h postgres -U "$POSTGRES_USER" "$db" \
+        | age -r "$AGE_PUBLIC_KEY" -o "$out"
+      rclone copyto "$out" "storagebox:backups/pg/${db}-${ts}.dump.age"
+      rm -f "$out"
+    done
+
+    # First-of-month copies get long retention in a separate folder.
+    if [ "$(date -u +%d)" = "01" ]; then
+      rclone copy "storagebox:backups/pg" "storagebox:backups/pg-monthly" \
+        --include "*-${ts}.dump.age"
+    fi
+
+    rclone delete storagebox:backups/pg --min-age 30d
+    rclone delete storagebox:backups/pg-monthly --min-age 365d
+    echo "backup complete: ${ts}"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+  namespace: data
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1800
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: postgres:18-alpine
+              command: ["/bin/sh", "/scripts/backup.sh"]
+              envFrom:
+                - secretRef:
+                    name: postgres-credentials
+                - secretRef:
+                    name: backup-config
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 96Mi
+                limits:
+                  memory: 192Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: backup-script
+---
+# Weekly cluster-state backup: sealing key, k3s join token reminder, and all
+# SealedSecret/Application specs — enough to rebuild GitOps from zero.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-backup-script
+  namespace: data
+data:
+  backup.sh: |
+    #!/bin/sh
+    set -eu
+    # image alpine/k8s ships kubectl; add rclone + age
+    apk add --no-cache rclone age >/dev/null
+
+    ts="$(date -u +%Y%m%d)"
+    out="/tmp/cluster-state-${ts}.yaml"
+    kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > "$out"
+    echo "---" >> "$out"
+    kubectl get sealedsecret,application -A -o yaml >> "$out"
+    age -r "$AGE_PUBLIC_KEY" -o "${out}.age" "$out"
+    rclone copyto "${out}.age" "storagebox:backups/cluster/cluster-state-${ts}.yaml.age"
+    rclone delete storagebox:backups/cluster --min-age 90d
+    echo "cluster state backed up: ${ts}"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-backup
+  namespace: data
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-backup-read
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list]
+  - apiGroups: [bitnami.com]
+    resources: [sealedsecrets]
+    verbs: [get, list]
+  - apiGroups: [argoproj.io]
+    resources: [applications]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-backup-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-backup-read
+subjects:
+  - kind: ServiceAccount
+    name: cluster-backup
+    namespace: data
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cluster-state-backup
+  namespace: data
+spec:
+  schedule: "0 4 * * 1"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: cluster-backup
+          containers:
+            - name: backup
+              image: alpine/k8s:1.35.2
+              command: ["/bin/sh", "/scripts/backup.sh"]
+              envFrom:
+                - secretRef:
+                    name: backup-config
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: cluster-backup-script

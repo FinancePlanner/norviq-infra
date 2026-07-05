@@ -1,0 +1,30 @@
+# Customizes the Traefik that k3s bundles (HelmChartConfig is merged into the
+# k3s-managed HelmChart by the helm-controller). Do not install a second
+# ingress controller.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
+      websecure:
+        http3:
+          enabled: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+    logs:
+      access:
+        enabled: true
+        format: json

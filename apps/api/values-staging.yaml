@@ -1,0 +1,32 @@
+# image.tag is bumped automatically by FinanceBackend CI on merge to main.
+image:
+  tag: "" # set by CI: <git-sha>
+
+env:
+  - name: DATABASE_HOST
+    value: postgres.data.svc.cluster.local
+  - name: DATABASE_PORT
+    value: "5432"
+  - name: DATABASE_NAME
+    value: stockplan_staging
+  - name: LOG_LEVEL
+    value: debug
+  - name: LOG_FORMAT
+    value: json
+  - name: PROMETHEUS_ENABLED
+    value: "true"
+  - name: OBS_TRACES_ENABLED
+    value: "true"
+  - name: OBS_OTLP_ENDPOINT
+    value: http://alloy.observability.svc.cluster.local:4317
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+ingress:
+  hosts:
+    - dev-api.norviqa.io

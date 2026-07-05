@@ -1,0 +1,28 @@
+# Bootstrap once after ArgoCD core is installed:
+#   kubectl apply -k cluster/argocd
+#   kubectl apply -f argocd/root.yaml
+# Everything else is GitOps from here.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/FinancePlanner/norviq-infra.git
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
