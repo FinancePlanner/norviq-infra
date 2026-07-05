@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/financeplanner/financebackend
+  repository: ghcr.io/financeplanner/norviq-backend
 
 port: 8080
 envFromSecret: api-env
