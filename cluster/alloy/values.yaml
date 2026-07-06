@@ -1,10 +1,7 @@
 # grafana/alloy helm chart values.
-# Everything (metrics + logs + traces) is pushed through Grafana Cloud's single
-# OTLP gateway. Credentials come from the SealedSecret `grafana-cloud`
-# (namespace observability) with keys:
-#   GC_OTLP_ENDPOINT  e.g. https://otlp-gateway-prod-eu-west-6.grafana.net/otlp
-#   GC_INSTANCE_ID    numeric instance ID (basic-auth username)
-#   GC_TOKEN          Access Policy token (basic-auth password)
+# Grafana Cloud credentials come from the SealedSecret `grafana-cloud`
+# (namespace observability) with keys: PROM_URL, PROM_USER, LOKI_URL,
+# LOKI_USER, TEMPO_URL, TEMPO_USER, GC_API_KEY.
 # Series budget is 10k on the free tier: kube-state-metrics is intentionally
 # absent and cAdvisor is trimmed to a whitelist below.
 
@@ -32,47 +29,51 @@ alloy:
 
   configMap:
     content: |-
-      // ================= Grafana Cloud OTLP gateway (all signals) =============
-      otelcol.auth.basic "gc" {
-        username = sys.env("GC_INSTANCE_ID")
-        password = sys.env("GC_TOKEN")
-      }
-
-      otelcol.exporter.otlphttp "gc" {
-        client {
-          endpoint = sys.env("GC_OTLP_ENDPOINT")
-          auth     = otelcol.auth.basic.gc.handler
+      // ---------- Traces: OTLP in (swift-otel) -> Grafana Cloud Tempo ----------
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
         }
-      }
-
-      otelcol.processor.batch "default" {
-        output {
-          metrics = [otelcol.exporter.otlphttp.gc.input]
-          logs    = [otelcol.exporter.otlphttp.gc.input]
-          traces  = [otelcol.exporter.otlphttp.gc.input]
-        }
-      }
-
-      // ---------- Traces: OTLP in (swift-otel) ----------
-      otelcol.receiver.otlp "in" {
-        grpc { endpoint = "0.0.0.0:4317" }
         output {
           traces = [otelcol.processor.batch.default.input]
         }
       }
 
-      // ---------- Metrics: prometheus scrapes -> OTLP ----------
-      otelcol.receiver.prometheus "in" {
+      otelcol.processor.batch "default" {
         output {
-          metrics = [otelcol.processor.batch.default.input]
+          traces = [otelcol.exporter.otlp.tempo.input]
         }
       }
 
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = sys.env("TEMPO_URL")
+          auth     = otelcol.auth.basic.tempo.handler
+        }
+      }
+
+      otelcol.auth.basic "tempo" {
+        username = sys.env("TEMPO_USER")
+        password = sys.env("GC_API_KEY")
+      }
+
+      // ---------- Metrics: app /metrics + cAdvisor + node -> Mimir ----------
+      prometheus.remote_write "grafana_cloud" {
+        endpoint {
+          url = sys.env("PROM_URL")
+          basic_auth {
+            username = sys.env("PROM_USER")
+            password = sys.env("GC_API_KEY")
+          }
+        }
+      }
+
+      // Pods annotated prometheus.io/scrape: "true" (the api's hand-rolled
+      // /metrics endpoint, PROMETHEUS_ENABLED=true).
       discovery.kubernetes "pods" {
         role = "pod"
       }
 
-      // App /metrics (pods annotated prometheus.io/scrape: "true")
       discovery.relabel "scrape_pods" {
         targets = discovery.kubernetes.pods.targets
         rule {
@@ -104,19 +105,19 @@ alloy:
       prometheus.scrape "pods" {
         targets         = discovery.relabel.scrape_pods.output
         scrape_interval = "60s"
-        forward_to      = [otelcol.receiver.prometheus.in.receiver]
+        forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
       }
 
-      // cAdvisor via kubelet, trimmed to what matters on one node.
+      // cAdvisor via kubelet, trimmed to the series that matter on one node.
       discovery.kubernetes "nodes" {
         role = "node"
       }
 
       prometheus.scrape "cadvisor" {
-        targets           = discovery.kubernetes.nodes.targets
-        scheme            = "https"
-        metrics_path      = "/metrics/cadvisor"
-        scrape_interval   = "60s"
+        targets         = discovery.kubernetes.nodes.targets
+        scheme          = "https"
+        metrics_path    = "/metrics/cadvisor"
+        scrape_interval = "60s"
         bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
         tls_config {
           insecure_skip_verify = true
@@ -127,7 +128,7 @@ alloy:
       prometheus.relabel "cadvisor_trim" {
         rule {
           source_labels = ["__name__"]
-          regex         = "container_memory_working_set_bytes|container_cpu_usage_seconds_total|container_network_receive_bytes_total|container_network_transmit_bytes_total"
+          regex         = "container_memory_working_set_bytes|container_cpu_usage_seconds_total|container_network_receive_bytes_total|container_network_transmit_bytes_total|kube_pod_container_status_restarts_total"
           action        = "keep"
         }
         rule {
@@ -135,7 +136,7 @@ alloy:
           regex         = "^$|POD"
           action        = "drop"
         }
-        forward_to = [otelcol.receiver.prometheus.in.receiver]
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
       }
 
       // Host metrics (node_exporter equivalent, built in).
@@ -146,13 +147,17 @@ alloy:
       prometheus.scrape "host" {
         targets         = prometheus.exporter.unix.host.targets
         scrape_interval = "60s"
-        forward_to      = [otelcol.receiver.prometheus.in.receiver]
+        forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
       }
 
-      // ---------- Logs: pod stdout/stderr -> OTLP ----------
-      otelcol.receiver.loki "in" {
-        output {
-          logs = [otelcol.processor.batch.default.input]
+      // ---------- Logs: all pod stdout/stderr -> Grafana Cloud Loki ----------
+      loki.write "grafana_cloud" {
+        endpoint {
+          url = sys.env("LOKI_URL")
+          basic_auth {
+            username = sys.env("LOKI_USER")
+            password = sys.env("GC_API_KEY")
+          }
         }
       }
 
@@ -178,7 +183,7 @@ alloy:
 
       loki.source.kubernetes "pods" {
         targets    = discovery.relabel.pod_logs.output
-        forward_to = [otelcol.receiver.loki.in.receiver]
+        forward_to = [loki.write.grafana_cloud.receiver]
       }
 
 rbac:
