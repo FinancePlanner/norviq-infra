@@ -90,16 +90,14 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  sources:
-    - repoURL: https://bitnami-labs.github.io/sealed-secrets
-      chart: sealed-secrets
-      targetRevision: 2.*
-      helm:
-        valueFiles:
-          - $values/cluster/sealed-secrets/values.yaml
-    - repoURL: https://github.com/FinancePlanner/norviq-infra.git
-      targetRevision: main
-      ref: values
+  # Vendored release manifest — the bitnami-labs Helm Pages repo returns 404
+  # after Bitnami's 2025 catalog migration.
+  source:
+    repoURL: https://github.com/FinancePlanner/norviq-infra.git
+    targetRevision: main
+    path: cluster/sealed-secrets
+    directory:
+      include: controller.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
