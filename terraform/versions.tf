@@ -1,15 +1,17 @@
 terraform {
   required_version = ">= 1.9"
 
-  # State + locking only. Execution mode must be set to "Local" in the HCP
-  # workspace settings so the hcloud token never leaves this machine/CI.
-  cloud {
-    organization = "norviq"
-
-    workspaces {
-      name = "norviq-prod"
-    }
-  }
+  # State backend: currently LOCAL (terraform.tfstate on disk — back it up).
+  # To move to HCP later: uncomment the cloud {} block below, create the
+  # "norviq" org + "norviq-prod" workspace (Execution Mode: Local), then run
+  # `terraform login && terraform init -migrate-state`.
+  #
+  # cloud {
+  #   organization = "norviq"
+  #   workspaces {
+  #     name = "norviq-prod"
+  #   }
+  # }
 
   required_providers {
     hcloud = {
