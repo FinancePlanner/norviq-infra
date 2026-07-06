@@ -4,6 +4,11 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
+# Pull secret(s) for private registries (GHCR). The `ghcr-pull` dockerconfigjson
+# SealedSecret must exist in the release namespace.
+imagePullSecrets:
+  - name: ghcr-pull
+
 replicaCount: 1
 port: 8080
 
