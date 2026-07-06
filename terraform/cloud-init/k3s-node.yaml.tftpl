@@ -61,17 +61,23 @@ runcmd:
       echo '/swapfile none swap sw,pri=10 0 0' >> /etc/fstab
     fi
   - sysctl --system
+  # zram module is not in Hetzner's minimal cloud kernel — pull the extras.
+  - apt-get install -y linux-modules-extra-$(uname -r) || apt-get install -y linux-modules-extra-virtual || true
+  - sh -c 'echo zram > /etc/modules-load.d/zram.conf'
+  - modprobe zram || true
   - systemctl daemon-reload
-  - systemctl start systemd-zram-setup@zram0.service || true
+  - systemctl restart systemd-zram-setup@zram0.service || true
   - swapon -a
   - /usr/local/sbin/mount-data-volume.sh
   # Pinned k3s, trimmed for 4 GB: no metrics-server, kubelet reservations,
   # aggressive image GC, hard eviction before the OOM killer gets involved.
+  # NOTE: the '<' in eviction-hard MUST be quoted or the shell reads it as a
+  # redirection.
   - |
     curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server \
       --disable metrics-server \
       --kubelet-arg=system-reserved=cpu=200m,memory=512Mi \
-      --kubelet-arg=eviction-hard=memory.available<200Mi,nodefs.available<10% \
+      "--kubelet-arg=eviction-hard=memory.available<200Mi,nodefs.available<10%" \
       --kubelet-arg=image-gc-high-threshold=60 \
       --kubelet-arg=image-gc-low-threshold=45 \
       --kubelet-arg=max-pods=40 \
