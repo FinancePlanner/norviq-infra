@@ -10,6 +10,7 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 192Mi
-            limits:
               memory: 320Mi
+            limits:
+              # 320Mi OOMKills the controller once it manages ~12 apps.
+              memory: 640Mi
