@@ -11,7 +11,7 @@ variable "server_name" {
 }
 
 variable "server_type" {
-  description = "Hetzner server type. cx22 = 2 vCPU / 4 GB (amd64 — backend images are linux/amd64 only)"
+  description = "Hetzner server type. cpx22 = 2 vCPU / 4 GB / 80 GB (AMD, x86 — backend images are linux/amd64 only). cx22 does not exist in fsn1."
   type        = string
   default     = "cpx22"
 }
