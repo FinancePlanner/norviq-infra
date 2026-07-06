@@ -13,8 +13,8 @@ sealed secret, terraform var, or shell export.
 | HCP user token | app.terraform.io → User Settings → Tokens → Create (or `terraform login`) | `terraform login` (§A) |
 | `ASC_KEY_ID` / `ASC_ISSUER_ID` / `ASC_KEY_P8` | App Store Connect → Users and Access → Integrations → App Store Connect API → Team Keys (§B) | GH secret (norviq-ios) + shell for match |
 | `MATCH_PASSWORD` | You invent it (`openssl rand -base64 24`). Remember it. | GH secret (norviq-ios) + shell for match |
-| `INFRA_DEPLOY_KEY` | `ssh-keygen` → write deploy key on norviq-infra (§C) | GH secret (norviq-backend + norviq-web) |
-| `MATCH_DEPLOY_KEY` | `ssh-keygen` → read deploy key on norviq-certificates (§C) | GH secret (norviq-ios) |
+| `INFRA_TOKEN` | Fine-grained PAT, Contents:Read/Write on norviq-infra (§C). Deploy keys are DISABLED org-wide. | GH secret (norviq-backend + norviq-web) |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | `echo -n "x-access-token:<PAT>" \| base64` — PAT with Contents:Read on norviq-certificates (§C) | GH secret (norviq-ios) |
 | `SENTRY_ORG` | Sentry → Settings → the org slug in the URL | GH secret (norviq-ios) |
 | `SENTRY_PROJECT` | Sentry → your iOS project → slug | GH secret (norviq-ios) |
 | `SENTRY_AUTH_TOKEN` | Sentry → Settings → Auth Tokens → Create (scopes: `project:releases`, `org:read`) | GH secret (norviq-ios) |
@@ -71,22 +71,34 @@ export ASC_KEY_P8="$(base64 -i ~/Downloads/AuthKey_<KEYID>.p8)"
 
 ---
 
-## §C. Deploy keys (two separate keypairs)
+## §C. CI git access via fine-grained PATs (deploy keys are disabled org-wide)
+
+FinancePlanner org disables deploy keys (`422 Deploy keys are disabled`), so CI
+authenticates to the private infra/certs repos with fine-grained PATs instead.
+
+Create the PAT(s): github.com → Settings → Developer settings →
+**Fine-grained tokens** → Generate new token. Resource owner **FinancePlanner**
+(may need org approval: Org → Settings → Personal access tokens → allow).
+
+**PAT-infra** — Repository access: only `norviq-infra`; Permissions: **Contents:
+Read and write**. Used by backend + web CI to push tag bumps.
 
 ```bash
-# INFRA key: app CI pushes image-tag bumps into norviq-infra (WRITE)
-ssh-keygen -t ed25519 -f ~/.ssh/norviq_infra_deploy -N "" -C norviq-ci-infra
-gh repo deploy-key add ~/.ssh/norviq_infra_deploy.pub \
-  --repo FinancePlanner/norviq-infra --title norviq-ci --allow-write
-gh secret set INFRA_DEPLOY_KEY --repo FinancePlanner/norviq-backend < ~/.ssh/norviq_infra_deploy
-gh secret set INFRA_DEPLOY_KEY --repo FinancePlanner/norviq-web     < ~/.ssh/norviq_infra_deploy
-
-# MATCH key: iOS CI reads the certs repo (READ ONLY — no --allow-write)
-ssh-keygen -t ed25519 -f ~/.ssh/norviq_match_deploy -N "" -C norviq-ci-match
-gh repo deploy-key add ~/.ssh/norviq_match_deploy.pub \
-  --repo FinancePlanner/norviq-certificates --title norviq-ci-match
-gh secret set MATCH_DEPLOY_KEY --repo FinancePlanner/norviq-ios < ~/.ssh/norviq_match_deploy
+gh secret set INFRA_TOKEN --repo FinancePlanner/norviq-backend --body '<pat-infra>'
+gh secret set INFRA_TOKEN --repo FinancePlanner/norviq-web     --body '<pat-infra>'
 ```
+
+**PAT-certs** — Repository access: only `norviq-certificates`; Permissions:
+**Contents: Read-only**. Used by iOS CI so match can clone the certs repo.
+
+```bash
+# match reads git over HTTPS using base64("x-access-token:<PAT>")
+gh secret set MATCH_GIT_BASIC_AUTHORIZATION --repo FinancePlanner/norviq-ios \
+  --body "$(echo -n 'x-access-token:<pat-certs>' | base64)"
+```
+
+(One PAT scoped to both repos also works if you prefer fewer tokens; least
+privilege = two.)
 
 ---
 

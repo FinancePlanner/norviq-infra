@@ -99,31 +99,26 @@ Values map to: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (base64 of the .p8).
 
 Set via `gh secret set` (run in each repo dir) or the web UI (repo → Settings → Secrets and variables → Actions).
 
-### 4a. INFRA_DEPLOY_KEY — lets backend/web CI push tag-bumps to norviq-infra
+Deploy keys are DISABLED org-wide on FinancePlanner, so CI uses fine-grained
+PATs. See runbook-credentials.md §C for the token creation details.
+
+### 4a. INFRA_TOKEN — lets backend/web CI push tag-bumps to norviq-infra
+
+Fine-grained PAT, resource owner FinancePlanner, repo `norviq-infra`, Contents:
+Read and write.
 
 ```bash
-# generate a dedicated deploy keypair
-ssh-keygen -t ed25519 -f ~/.ssh/norviq_infra_deploy -N "" -C "norviq-ci-infra"
-
-# add the PUBLIC key to norviq-infra as a WRITE deploy key
-gh repo deploy-key add ~/.ssh/norviq_infra_deploy.pub \
-  --repo FinancePlanner/norviq-infra --title norviq-ci --allow-write
-
-# add the PRIVATE key as a secret in BOTH app repos
-gh secret set INFRA_DEPLOY_KEY --repo FinancePlanner/norviq-backend < ~/.ssh/norviq_infra_deploy
-gh secret set INFRA_DEPLOY_KEY --repo FinancePlanner/norviq-web     < ~/.ssh/norviq_infra_deploy
+gh secret set INFRA_TOKEN --repo FinancePlanner/norviq-backend --body '<pat-infra>'
+gh secret set INFRA_TOKEN --repo FinancePlanner/norviq-web     --body '<pat-infra>'
 ```
 
-### 4b. MATCH_DEPLOY_KEY — lets iOS CI read the certificates repo
+### 4b. MATCH_GIT_BASIC_AUTHORIZATION — lets iOS CI read the certificates repo
+
+Fine-grained PAT, repo `norviq-certificates`, Contents: Read-only.
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/norviq_match_deploy -N "" -C "norviq-ci-match"
-
-# READ-ONLY deploy key on the certs repo (no --allow-write)
-gh repo deploy-key add ~/.ssh/norviq_match_deploy.pub \
-  --repo FinancePlanner/norviq-certificates --title norviq-ci-match
-
-gh secret set MATCH_DEPLOY_KEY --repo FinancePlanner/norviq-ios < ~/.ssh/norviq_match_deploy
+gh secret set MATCH_GIT_BASIC_AUTHORIZATION --repo FinancePlanner/norviq-ios \
+  --body "$(echo -n 'x-access-token:<pat-certs>' | base64)"
 ```
 
 ### 4c. iOS secrets (repo: norviq-ios)
