@@ -243,6 +243,55 @@ kubectl apply -f argocd/root.yaml          # app-of-apps → all apps
 
 ---
 
+## 6b. Growing later (when you have paying users)
+
+Nothing here forces you to scale on day one — the whole point of this design is
+that **the deploy workflow never changes as you grow**. Do these in order, only
+when a real need shows up.
+
+### The old box: retire it whenever you want (no rush)
+The new k3s box (`178.105.73.13`) can run indefinitely alongside the old compose
+box. The old box is only "live" for whatever DNS still points at it. The cutover
+(flip DNS, final DB copy) is a ~20–30 min job you do **when you're ready**, not on
+a deadline — full steps in `runbook-cutover.md`. Until then, keep the old box as a
+warm fallback; costs a few €/mo.
+
+### Scaling ladder (cheapest → most involved)
+1. **Bigger box (vertical)** — easiest win. Edit `server_type` in
+   `terraform/variables.tf` (e.g. `cpx32` = 4 vCPU/8 GB, `cpx42` = 8 vCPU/16 GB),
+   then `terraform apply`. Note: changing `server_type` **replaces** the server, so
+   treat it like a rebuild (see §6): the primary IP is preserved (DNS unchanged),
+   but you restore Postgres from the volume/backup. Do it in a maintenance window.
+   Raising the box also lets you relax the tight memory limits in the manifests.
+2. **Separate staging node** — give staging its own small box so a staging deploy
+   can never disturb prod. Add a second `hcloud_server` + a k3s **agent** join, or a
+   separate single-node cluster with its own ArgoCD apps pointing at the `staging`
+   values. The GitOps layout already splits staging/production, so this is mostly
+   Terraform.
+3. **Multi-node HA** — real machine redundancy. Grow k3s to 3 server nodes
+   (embedded etcd instead of sqlite) + a Hetzner Load Balancer in front of Traefik.
+   Now a node failure doesn't take you down. This is the first step that changes
+   k3s bootstrap (etcd, `--server` join tokens) — plan a proper migration.
+4. **Managed / replicated Postgres** — the single Postgres pod is the real SPOF.
+   When uptime matters, move to either a Hetzner-hosted managed Postgres, or run
+   **CloudNativePG** (operator with replicas + automated failover + PITR). The app
+   only needs `DATABASE_HOST` repointed (a values edit) + a data migration.
+5. **Move heavy observability in-house (optional)** — if Grafana Cloud's free tier
+   gets tight, self-host Prometheus/Loki/Grafana on a dedicated node. Alloy's
+   exporters just repoint.
+
+### If you outgrow GitHub (e.g. move to GitLab)
+GitOps is CI- and registry-agnostic. Migrating means only: (a) CI becomes
+`.gitlab-ci.yml` doing the same build → push → tag-bump; (b) the `ghcr-pull`
+secret becomes a GitLab deploy-token dockerconfigjson; (c) ArgoCD Application
+`repoURL`s point at GitLab. `charts/`, `apps/`, `argocd/`, `secrets/` are untouched.
+
+**Rule of thumb:** stay on one box until a paying-user SLA actually requires HA.
+Vertical scaling (step 1) buys a lot of headroom cheaply; only climb to steps 3–4
+when downtime costs you money.
+
+---
+
 ## 7. Repo map
 
 ```
