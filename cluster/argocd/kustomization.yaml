@@ -5,6 +5,7 @@ namespace: argocd
 
 resources:
   - namespace.yaml
+  - default-project.yaml
   # Core install: application-controller, repo-server, redis. No UI server,
   # no dex, no notifications. Interact via `argocd --core` or kubectl.
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.4/manifests/core-install.yaml

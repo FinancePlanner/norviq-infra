@@ -1,0 +1,17 @@
+# core-install.yaml does not ship the default AppProject (only the full
+# install.yaml does). All Applications reference project: default, so create it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: argocd
+spec:
+  description: Default project
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: "*"
+      server: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
