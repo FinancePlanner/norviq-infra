@@ -1,0 +1,22 @@
+# image.tag is bumped automatically by norviq-mcp CI on merge to main.
+image:
+  tag: "" # set by CI: <git-sha>
+
+env:
+  - name: BACKEND_BASE_URL
+    value: http://api:8080
+  - name: MCP_PUBLIC_URL
+    value: https://dev-mcp.norviqa.io
+  - name: LISTEN_ADDR
+    value: ":8087"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    memory: 96Mi
+
+ingress:
+  hosts:
+    - dev-mcp.norviqa.io
