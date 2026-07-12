@@ -17,6 +17,9 @@ env: []
 
 # Name of the (Sealed)Secret in the release namespace with the secret env vars
 envFromSecret: ""
+# Additional secrets to mount as env vars (envFrom.secretRef), e.g. a secret
+# shared between services. Combined with envFromSecret above.
+envFromSecrets: []
 
 podAnnotations: {}
 

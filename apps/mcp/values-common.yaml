@@ -2,7 +2,7 @@ image:
   repository: ghcr.io/financeplanner/norviq-mcp
 port: 8087
 # MCP_INTROSPECTION_SECRET lives in the sealed mcp-env secret.
-envFromSecret: mcp-env
+envFromSecret: mcp-introspection
 probes:
   readiness:
     path: /readyz

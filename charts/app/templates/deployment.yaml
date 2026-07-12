@@ -38,10 +38,16 @@ spec:
           env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if .Values.envFromSecret }}
+          {{- if or .Values.envFromSecret .Values.envFromSecrets }}
           envFrom:
+            {{- if .Values.envFromSecret }}
             - secretRef:
                 name: {{ .Values.envFromSecret }}
+            {{- end }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
           {{- end }}
           readinessProbe:
             httpGet:
