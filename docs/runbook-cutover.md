@@ -17,6 +17,8 @@ Window: evening, ~20–30 min (dominated by dump/restore).
    cert-manager takes over renewal after cutover.
 2. **Stop writes on blue**: `ssh root@<blue> 'cd /opt/stockplan && docker compose -p prod -f docker-compose.production.yml stop app'`
    (nginx keeps serving 503; iOS clients retry.)
+> Rehearse first with `BLUE_HOST=root@<blue> scripts/migrate-db.sh rehearse` (times the restore into a throwaway DB, non-destructive). Run the real thing with `... final`.
+
 3. **Final dump → restore into green**:
    ```bash
    ssh root@<blue> 'cd /opt/stockplan && docker compose -p prod -f docker-compose.production.yml exec -T db pg_dump -Fc -U stockplan_user stockplan_prod' > final.dump
