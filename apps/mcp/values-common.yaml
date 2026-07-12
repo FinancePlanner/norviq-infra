@@ -1,0 +1,21 @@
+image:
+  repository: ghcr.io/financeplanner/norviq-mcp
+port: 8087
+# MCP_INTROSPECTION_SECRET lives in the sealed mcp-env secret.
+envFromSecret: mcp-env
+probes:
+  readiness:
+    path: /readyz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    failureThreshold: 3
+# MCP is stateless and runs no migrations.
+migrate:
+  enabled: false
+ingress:
+  clusterIssuer: letsencrypt-prod

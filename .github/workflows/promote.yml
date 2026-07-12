@@ -10,7 +10,7 @@ on:
         description: Service to promote
         required: true
         type: choice
-        options: [api, web, both]
+        options: [api, web, mcp, both, all]
         default: api
 
 permissions:
@@ -28,6 +28,7 @@ jobs:
         run: |
           services="${{ inputs.service }}"
           [ "$services" = "both" ] && services="api web"
+          [ "$services" = "all" ] && services="api web mcp"
           summary=""
           for svc in $services; do
             tag="$(yq '.image.tag' "apps/$svc/values-staging.yaml")"
