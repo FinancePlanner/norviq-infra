@@ -5,13 +5,13 @@ Remote MCP server (Go, Streamable HTTP, container port 8087). Uses the shared
 
 - Image: `ghcr.io/financeplanner/norviq-mcp` (private — `ghcr-pull` already present in both namespaces).
 - Health: `/healthz` (liveness), `/readyz` (readiness).
-- Hosts: `dev-mcp.norviqa.io` (staging), `mcp.norviqa.io` (production).
+- Hosts: `dev-mcp.norviq.org` (staging), `mcp.norviq.org` (production).
 - Talks to the backend in-cluster at `http://api:8080`.
 - ArgoCD apps: `argocd/apps/mcp-staging.yaml`, `argocd/apps/mcp-production.yaml` (auto-discovered by the root app).
 
 ## One-time manual steps (need cluster / DNS / CI access)
 
-1. **DNS** — create A records `dev-mcp.norviqa.io` and `mcp.norviqa.io` → the cluster IP (DNS is manual in this repo; cert-manager issues TLS once the host resolves).
+1. **DNS** — create A records `dev-mcp.norviq.org` and `mcp.norviq.org` → the cluster IP (DNS is manual in this repo; cert-manager issues TLS once the host resolves).
 
 2. **Introspection secret** — pick one shared value used by BOTH the backend and mcp:
    - Add `MCP_INTROSPECTION_SECRET` to the existing `api-env` sealed secret in both envs (re-seal the whole secret; SealedSecrets can't append a single key by hand).
