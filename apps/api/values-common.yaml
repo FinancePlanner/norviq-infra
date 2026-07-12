@@ -3,6 +3,9 @@ image:
 
 port: 8080
 envFromSecret: api-env
+# Shared with norviq-mcp: the backend validates introspection calls against this.
+envFromSecrets:
+  - mcp-introspection
 
 probes:
   readiness:

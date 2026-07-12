@@ -15,15 +15,15 @@ Remote MCP server (Go, Streamable HTTP, container port 8087). Uses the shared
 
 2. **Introspection secret** — pick one shared value used by BOTH the backend and mcp:
    - Add `MCP_INTROSPECTION_SECRET` to the existing `api-env` sealed secret in both envs (re-seal the whole secret; SealedSecrets can't append a single key by hand).
-   - Create the `mcp-env` sealed secret with the same value (see `secrets/{staging,production}/mcp-env.example.yaml`):
+   - Create the `mcp-introspection` sealed secret with the same value (see `secrets/{staging,production}/mcp-introspection.example.yaml`):
      ```sh
      echo "MCP_INTROSPECTION_SECRET=<shared-secret>" > .env.mcp
-     kubectl create secret generic mcp-env -n staging --from-env-file=.env.mcp \
+     kubectl create secret generic mcp-introspection -n staging --from-env-file=.env.mcp \
        --dry-run=client -o yaml \
        | kubeseal --controller-name sealed-secrets-controller \
                   --controller-namespace kube-system -o yaml \
-       > secrets/staging/mcp-env.yaml
-     # repeat with -n production > secrets/production/mcp-env.yaml
+       > secrets/staging/mcp-introspection.yaml
+     # repeat with -n production > secrets/production/mcp-introspection.yaml
      ```
 
 3. **Staging image tag** — the `norviq-mcp` repo's CI must write `image.tag: <git-sha>` into `apps/mcp/values-staging.yaml` on merge to main (mirrors the api/web CI). Until then, set it manually to a pushed image tag.
