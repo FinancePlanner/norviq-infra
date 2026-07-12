@@ -6,7 +6,7 @@ env:
   - name: BACKEND_BASE_URL
     value: http://api:8080
   - name: MCP_PUBLIC_URL
-    value: https://dev-mcp.norviqa.io
+    value: https://dev-mcp.norviq.org
   - name: LISTEN_ADDR
     value: ":8087"
 
@@ -19,4 +19,4 @@ resources:
 
 ingress:
   hosts:
-    - dev-mcp.norviqa.io
+    - dev-mcp.norviq.org
