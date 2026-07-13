@@ -7,6 +7,15 @@ envFromSecret: api-env
 envFromSecrets:
   - mcp-introspection
 
+env:
+  - name: TAX_REPORT_STORAGE_PATH
+    value: /var/lib/norviq/tax-reports
+
+persistence:
+  enabled: true
+  mountPath: /var/lib/norviq/tax-reports
+  size: 1Gi
+
 probes:
   readiness:
     path: /health/ready

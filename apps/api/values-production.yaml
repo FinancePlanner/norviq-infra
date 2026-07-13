@@ -19,6 +19,15 @@ env:
     value: "true"
   - name: OBS_OTLP_ENDPOINT
     value: http://alloy.observability.svc.cluster.local:4317
+  - name: TAX_REPORT_STORAGE_PATH
+    value: /var/lib/norviq/tax-reports
+  - name: TAX_VALIDATED_JURISDICTIONS
+    value: US
+
+persistence:
+  enabled: true
+  mountPath: /var/lib/norviq/tax-reports
+  size: 5Gi
 
 resources:
   requests:
