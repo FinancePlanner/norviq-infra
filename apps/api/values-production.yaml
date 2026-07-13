@@ -38,4 +38,4 @@ resources:
 
 ingress:
   hosts:
-    - api.norviqa.io
+    - api.norviq.org
