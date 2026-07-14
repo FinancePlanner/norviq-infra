@@ -15,6 +15,12 @@ env:
     value: /var/lib/norviq/advanced-reports
   - name: GOTENBERG_BASE_URL
     value: http://gotenberg:3000
+  - name: REBALANCING_ENABLED
+    value: "true"
+  - name: REBALANCING_ALERTS_ENABLED
+    value: "true"
+  - name: REBALANCING_ALERT_POLL_SECONDS
+    value: "300"
 
 persistence:
   enabled: true

@@ -29,6 +29,12 @@ env:
     value: US
   - name: PUBLIC_API_BASE_URL
     value: https://api.norviq.org
+  - name: REBALANCING_ENABLED
+    value: "true"
+  - name: REBALANCING_ALERTS_ENABLED
+    value: "true"
+  - name: REBALANCING_ALERT_POLL_SECONDS
+    value: "300"
 
 persistence:
   enabled: true
