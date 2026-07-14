@@ -22,7 +22,7 @@ controller materializes the real `Secret`.
 
 | File | Namespace | Keys |
 |---|---|---|
-| `staging/api-env.yaml` | staging | DATABASE_USERNAME, DATABASE_PASSWORD, JWT_SECRET, OAUTH_APPLE_*, APNs, Resend, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, AI_CHAT_MODEL, AI_TIPS_MODEL, … |
+| `staging/api-env.yaml` | staging | DATABASE_USERNAME, DATABASE_PASSWORD, JWT_SECRET, OAUTH_APPLE_*, APNs, Resend, AI_PROVIDER, AI_API_KEY or provider key, AI_BASE_URL, AI_MODEL, AI_CHAT_MODEL, AI_TIPS_MODEL, … |
 | `production/api-env.yaml` | production | same, production values |
 | `staging/mcp-introspection.yaml` | staging | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
 | `production/mcp-introspection.yaml` | production | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
