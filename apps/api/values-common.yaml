@@ -6,15 +6,27 @@ envFromSecret: api-env
 # Shared with norviq-mcp: the backend validates introspection calls against this.
 envFromSecrets:
   - mcp-introspection
+  - report-download-signing
 
 env:
   - name: TAX_REPORT_STORAGE_PATH
     value: /var/lib/norviq/tax-reports
+  - name: ADVANCED_REPORT_STORAGE_PATH
+    value: /var/lib/norviq/advanced-reports
+  - name: GOTENBERG_BASE_URL
+    value: http://gotenberg:3000
 
 persistence:
   enabled: true
   mountPath: /var/lib/norviq/tax-reports
   size: 1Gi
+
+additionalPersistence:
+  - name: advanced-reports
+    mountPath: /var/lib/norviq/advanced-reports
+    size: 2Gi
+    accessModes:
+      - ReadWriteOnce
 
 probes:
   readiness:

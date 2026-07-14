@@ -17,3 +17,23 @@ spec:
     requests:
       storage: {{ .Values.persistence.size }}
 {{- end }}
+{{- range .Values.additionalPersistence }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}
+  labels:
+    {{- include "app.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    {{- toYaml (.accessModes | default (list "ReadWriteOnce")) | nindent 4 }}
+  {{- if .storageClass }}
+  storageClassName: {{ .storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .size | default "1Gi" }}
+{{- end }}

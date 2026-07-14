@@ -24,6 +24,7 @@ controller materializes the real `Secret`.
 |---|---|---|
 | `staging/api-env.yaml` | staging | DATABASE_USERNAME, DATABASE_PASSWORD, JWT_SECRET, OAUTH_APPLE_*, APNs, Resend, AI_PROVIDER, AI_API_KEY or provider key, AI_BASE_URL, AI_MODEL, AI_CHAT_MODEL, AI_TIPS_MODEL, … |
 | `production/api-env.yaml` | production | same, production values |
+| `{staging,production}/report-download-signing.yaml` | matching environment | REPORT_DOWNLOAD_SIGNING_SECRET (unique 32-byte random value; signs private report links) |
 | `staging/mcp-introspection.yaml` | staging | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
 | `production/mcp-introspection.yaml` | production | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
 | `staging/web-env.yaml` | staging | SESSION_SECRET, SENTRY_DSN, POSTHOG_PROJECT_TOKEN, REVENUECAT_WEB_API_KEY |
