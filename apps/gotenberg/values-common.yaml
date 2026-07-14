@@ -1,0 +1,30 @@
+image:
+  repository: docker.io/gotenberg/gotenberg
+  tag: "8.23.2"
+
+imagePullSecrets: []
+port: 3000
+replicaCount: 1
+
+probes:
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+  liveness:
+    path: /health
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 768Mi
+
+ingress:
+  enabled: false

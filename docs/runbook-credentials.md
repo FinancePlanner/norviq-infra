@@ -29,6 +29,7 @@ sealed secret, terraform var, or shell export.
 | web-env | web `.env.production` on box: SESSION_SECRET, SENTRY_DSN, POSTHOG_PROJECT_TOKEN, REVENUECAT_WEB_API_KEY. Generate SESSION_SECRET fresh: `openssl rand -hex 32` | sealed secret (§E) |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | You invent (must match DATABASE_USERNAME/PASSWORD in api-env) | sealed secret (§E) |
 | web-staging-htpasswd | `htpasswd -nbB norviq '<pass>'` (needs apache2-utils / httpd) | sealed secret (§E) |
+| `REPORT_DOWNLOAD_SIGNING_SECRET` | Generate independently per environment with `openssl rand -hex 32`. Rotation invalidates outstanding signed report URLs. | `report-download-signing` sealed secret (§E) |
 | Grafana Cloud: `PROM_URL` `PROM_USER` `LOKI_URL` `LOKI_USER` `TEMPO_URL` `TEMPO_USER` | grafana.com → your stack → **Connections** / "Send Metrics/Logs/Traces" → each shows endpoint URL + username (numeric instance ID) | sealed secret grafana-cloud (§F) |
 | Grafana Cloud: `GC_API_KEY` | grafana.com → stack → Access Policies → Create token (scopes: metrics:write, logs:write, traces:write) | sealed secret grafana-cloud (§F) |
 | `AGE_PUBLIC_KEY` (backups) | `age-keygen -o ~/keys/norviq-backup.agekey` → prints `Public key: age1...` (keep the file offline) | sealed secret backup-config (§F) |

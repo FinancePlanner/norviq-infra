@@ -21,13 +21,26 @@ env:
     value: http://alloy.observability.svc.cluster.local:4317
   - name: TAX_REPORT_STORAGE_PATH
     value: /var/lib/norviq/tax-reports
+  - name: ADVANCED_REPORT_STORAGE_PATH
+    value: /var/lib/norviq/advanced-reports
+  - name: GOTENBERG_BASE_URL
+    value: http://gotenberg:3000
   - name: TAX_VALIDATED_JURISDICTIONS
     value: US
+  - name: PUBLIC_API_BASE_URL
+    value: https://dev-api.norviq.org
 
 persistence:
   enabled: true
   mountPath: /var/lib/norviq/tax-reports
   size: 1Gi
+
+additionalPersistence:
+  - name: advanced-reports
+    mountPath: /var/lib/norviq/advanced-reports
+    size: 2Gi
+    accessModes:
+      - ReadWriteOnce
 
 resources:
   requests:

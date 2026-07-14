@@ -29,6 +29,15 @@ persistence:
   accessModes:
     - ReadWriteOnce
 
+# Additional retained PVCs mounted into the same workload. Useful when a
+# service owns more than one independently-sized durable artifact store.
+additionalPersistence: []
+#  - name: artifacts
+#    mountPath: /var/lib/app/artifacts
+#    size: 10Gi
+#    storageClass: ""
+#    accessModes: [ReadWriteOnce]
+
 podAnnotations: {}
 
 probes:
