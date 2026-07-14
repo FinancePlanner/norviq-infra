@@ -3,6 +3,10 @@ image:
 port: 8087
 # MCP_INTROSPECTION_SECRET lives in the sealed mcp-env secret.
 envFromSecret: mcp-introspection
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8087"
+  prometheus.io/path: /metrics
 probes:
   readiness:
     path: /readyz
