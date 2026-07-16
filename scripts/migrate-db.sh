@@ -25,8 +25,10 @@ BLUE_HOST="${BLUE_HOST:?set BLUE_HOST, e.g. root@168.119.156.43}"
 BLUE_COMPOSE_DIR="${BLUE_COMPOSE_DIR:-/opt/stockplan}"
 BLUE_COMPOSE_FILE="${BLUE_COMPOSE_FILE:-docker-compose.production.yml}"
 BLUE_COMPOSE_PROJECT="${BLUE_COMPOSE_PROJECT:-prod}"
-SRC_DB_USER="${SRC_DB_USER:-stockplan_user}"
-SRC_DB="${SRC_DB:-stockplan_prod}"
+# Empty = use the blue db container's own POSTGRES_USER/POSTGRES_DB, so the
+# prod .env stays the single source of truth for credentials.
+SRC_DB_USER="${SRC_DB_USER:-}"
+SRC_DB="${SRC_DB:-}"
 GREEN_NS="${GREEN_NS:-data}"
 GREEN_POD="${GREEN_POD:-postgres-0}"
 TARGET_DB="${TARGET_DB:-stockplan_production}"
@@ -41,8 +43,8 @@ command -v kubectl >/dev/null || die "kubectl not found"
 kubectl -n "$GREEN_NS" get pod "$GREEN_POD" >/dev/null 2>&1 || die "green pod $GREEN_NS/$GREEN_POD not reachable (check KUBECONFIG)"
 
 # 1. Dump blue (custom format, compressed) over ssh.
-log "dumping $SRC_DB from blue ($BLUE_HOST) ..."
-ssh "$BLUE_HOST" "cd $BLUE_COMPOSE_DIR && docker compose -p $BLUE_COMPOSE_PROJECT -f $BLUE_COMPOSE_FILE exec -T db pg_dump -Fc -U $SRC_DB_USER $SRC_DB" > "$DUMP"
+log "dumping ${SRC_DB:-\$POSTGRES_DB} from blue ($BLUE_HOST) ..."
+ssh "$BLUE_HOST" "cd $BLUE_COMPOSE_DIR && docker compose -p $BLUE_COMPOSE_PROJECT -f $BLUE_COMPOSE_FILE exec -T -e SRC_DB_USER=$SRC_DB_USER -e SRC_DB=$SRC_DB db sh -c 'pg_dump -Fc -U \"\${SRC_DB_USER:-\$POSTGRES_USER}\" \"\${SRC_DB:-\$POSTGRES_DB}\"'" > "$DUMP"
 SIZE=$(wc -c < "$DUMP" | tr -d ' ')
 [ "$SIZE" -gt 100 ] || die "dump looks empty ($SIZE bytes)"
 log "dump ok: $DUMP ($SIZE bytes)"
@@ -70,15 +72,15 @@ rowcounts() {
 if [ "$MODE" = "rehearse" ]; then
   log "REHEARSE: restoring into throwaway DB $REHEARSE_DB (non-destructive) ..."
   kubectl -n "$GREEN_NS" exec -i "$GREEN_POD" -- sh -c "
-    psql -U \"\$POSTGRES_USER\" -c 'DROP DATABASE IF EXISTS $REHEARSE_DB;'
-    psql -U \"\$POSTGRES_USER\" -c 'CREATE DATABASE $REHEARSE_DB;'
+    psql -U \"\$POSTGRES_USER\" -d postgres -c 'DROP DATABASE IF EXISTS $REHEARSE_DB;'
+    psql -U \"\$POSTGRES_USER\" -d postgres -c 'CREATE DATABASE $REHEARSE_DB;'
   "
   START=$(date +%s)
   restore_into "$REHEARSE_DB" "--no-owner --no-privileges"
   END=$(date +%s)
   log "rehearsal restore took $((END - START))s; public $(rowcounts "$REHEARSE_DB")"
   kubectl -n "$GREEN_NS" exec -i "$GREEN_POD" -- sh -c "
-    psql -U \"\$POSTGRES_USER\" -c 'DROP DATABASE IF EXISTS $REHEARSE_DB;'
+    psql -U \"\$POSTGRES_USER\" -d postgres -c 'DROP DATABASE IF EXISTS $REHEARSE_DB;'
     rm -f /tmp/migrate.dump
   "
   log "rehearsal complete — throwaway DB dropped. Nothing on green was changed."
