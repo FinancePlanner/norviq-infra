@@ -1,6 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "5f209b4c7b35ba7f7cee8efd0ede329c133588b7"  # bootstrap k3s production cutover
+  tag: "7e9996f5577067efb0275271d4330c2cac5a4ed6"
 
 env:
   - name: DATABASE_HOST
@@ -15,6 +15,10 @@ env:
     value: json
   - name: PROMETHEUS_ENABLED
     value: "true"
+  - name: SCENARIO_PLANNING_ENABLED
+    value: "true"
+  - name: SCENARIO_HISTORY_REFRESH_SECONDS
+    value: "86400"
   - name: OBS_TRACES_ENABLED
     value: "true"
   - name: OBS_OTLP_ENDPOINT
