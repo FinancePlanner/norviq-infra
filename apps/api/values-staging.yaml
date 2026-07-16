@@ -1,7 +1,6 @@
 # image.tag is bumped automatically by FinanceBackend CI on merge to main.
 image:
-  tag: "" # set by CI: <git-sha>
-
+  tag: "5048a003ac9e4aa1257c88c4c4d0897ce7767560" # set by CI: <git-sha>
 env:
   - name: DATABASE_HOST
     value: postgres.data.svc.cluster.local
@@ -29,26 +28,22 @@ env:
     value: US
   - name: PUBLIC_API_BASE_URL
     value: https://dev-api.norviq.org
-
 persistence:
   enabled: true
   mountPath: /var/lib/norviq/tax-reports
   size: 1Gi
-
 additionalPersistence:
   - name: advanced-reports
     mountPath: /var/lib/norviq/advanced-reports
     size: 2Gi
     accessModes:
       - ReadWriteOnce
-
 resources:
   requests:
     cpu: 50m
     memory: 128Mi
   limits:
     memory: 256Mi
-
 ingress:
   hosts:
     - dev-api.norviq.org
