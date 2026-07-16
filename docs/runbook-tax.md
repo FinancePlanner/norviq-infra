@@ -70,3 +70,43 @@ Alert on API logs matching:
 4. Tax report cleanup job errors
 
 Promtail/Loki or Alloy log rules can match these strings until dedicated metrics are exported.
+
+## Grafana Cloud / Loki alert queries
+
+Pod logs are shipped by Alloy to Grafana Cloud Loki (`namespace`, `pod`, `app` labels).
+Create **Log** alert rules (or Explore bookmarks) with:
+
+### 1. Tax report generation failures
+```logql
+{namespace=~"staging|production", app="api"} |= "tax.report generation failed"
+```
+
+### 2. Projection poll failures
+```logql
+{namespace=~"staging|production", app="api"} |= "tax.projection poll failed"
+```
+
+### 3. Report cleanup / retry exhaustion
+```logql
+{namespace=~"staging|production", app="api"} |~ "tax.report|TaxReportCleanup|retry" |= "failed"
+```
+
+### 4. API crash / ready failures (credential or PVC)
+```logql
+{namespace=~"staging|production", app="api"} |~ "DATABASE_USERNAME must not|Abort.500|CrashLoop"
+```
+
+Suggested thresholds: fire if **>0** matches in 5m (critical for report generation), **>3** in 15m for projection poll.
+
+## Staging / production credential notes
+
+Production credential validation rejects `stockplan_user` / `vapor_username` / `postgres`.
+Use dedicated app roles:
+
+| Env | Role |
+|-----|------|
+| staging | `stockplan_staging_app` |
+| production (k3s) | `stockplan_production_app` |
+
+Keep `TAX_VALIDATED_JURISDICTIONS=US` until PT/ES/DE professional sign-off.
+
