@@ -21,6 +21,12 @@ env:
     value: "true"
   - name: REBALANCING_ALERT_POLL_SECONDS
     value: "300"
+  - name: GOAL_PLANNING_ENABLED
+    value: "true"
+  - name: GOAL_EVALUATOR_ENABLED
+    value: "true"
+  - name: GOAL_EVALUATOR_INTERVAL_SECONDS
+    value: "86400"
 
 persistence:
   enabled: true
