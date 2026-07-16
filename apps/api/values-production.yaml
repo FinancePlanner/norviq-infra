@@ -1,6 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "" # set by promote PR
+  tag: "5048a003ac9e4aa1257c88c4c4d0897ce7767560"  # bootstrap k3s production cutover
 
 env:
   - name: DATABASE_HOST
