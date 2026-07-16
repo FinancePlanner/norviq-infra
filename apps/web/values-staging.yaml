@@ -1,7 +1,6 @@
 # image.tag is bumped automatically by StockPlanWeb CI on merge to main.
 image:
-  tag: "" # set by CI: <git-sha>
-
+  tag: "14f05a1a285bb95fb3bd917077a9e62062130f1d" # set by CI: <git-sha>
 env:
   - name: GO_ENV
     value: production
@@ -13,18 +12,15 @@ env:
     value: "true"
   - name: SENTRY_ENVIRONMENT
     value: staging
-
 resources:
   requests:
     cpu: 25m
     memory: 32Mi
   limits:
     memory: 64Mi
-
 ingress:
   hosts:
     - staging.norviq.org
-
 basicAuth:
   enabled: true
   secretName: web-staging-htpasswd
