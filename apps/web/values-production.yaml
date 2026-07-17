@@ -8,7 +8,8 @@ env:
   - name: BACKEND_URL
     value: http://api:8080 # same-namespace service
   - name: PUBLIC_BASE_URL
-    value: https://norviq.org
+    # Must match OAUTH_ALLOWED_REDIRECT_URIS (www callbacks). Apex norviq.org is not allowlisted.
+    value: https://www.norviq.org
   - name: COOKIE_SECURE
     value: "true"
   - name: SENTRY_ENVIRONMENT
