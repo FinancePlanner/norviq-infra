@@ -1,6 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "" # set by promote PR
+  tag: "6e483235218ea980592bfd0ef5b39b9451216a50" # set by promote PR
 
 env:
   - name: BACKEND_BASE_URL
