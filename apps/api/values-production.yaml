@@ -46,10 +46,12 @@ env:
   - name: GOAL_EVALUATOR_INTERVAL_SECONDS
     value: "86400"
   # AI provider (assistant + receipt OCR). OpenRouter is OpenAI-compatible; the
-  # key is OPENROUTER_API_KEY in the sealed api-env. This also activates the AI
-  # assistant (using OpenRouter's default model).
+  # key is OPENROUTER_API_KEY in the sealed api-env.
   - name: AI_PROVIDER
     value: openrouter
+  # Assistant chat model. Gemini Flash: cheap, fast, reliable tool-calling.
+  - name: AI_MODEL
+    value: google/gemini-2.0-flash-001
   # Receipt photo OCR. Non-secret flags; the provider reuses the AI credentials
   # above. Model must be vision-capable and use the OpenRouter vendor prefix.
   - name: RECEIPT_OCR_PROVIDER
