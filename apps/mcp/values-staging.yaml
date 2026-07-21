@@ -1,6 +1,6 @@
 # image.tag is bumped automatically by norviq-mcp CI on merge to main.
 image:
-  tag: "dc5a11990b6594aaeff350239715c3019da566e1"
+  tag: "83eba629411710ce43445d04c3d22c250580c0ff"
 env:
   - name: BACKEND_BASE_URL
     value: http://api:8080
