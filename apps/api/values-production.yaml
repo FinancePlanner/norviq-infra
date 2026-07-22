@@ -53,6 +53,10 @@ env:
   # Chat Completions and Responses APIs, including tool-driven workflows.
   - name: AI_MODEL
     value: deepseek/deepseek-v4-flash
+  # DeepSeek uses high-effort reasoning by default. Reserve enough completion
+  # budget for the final structured insight card after reasoning tokens.
+  - name: AI_MAX_TOKENS
+    value: "2000"
   # Receipt photo OCR. Non-secret flags; the provider reuses the AI credentials
   # above. Model must be vision-capable and use the OpenRouter vendor prefix.
   - name: RECEIPT_OCR_PROVIDER
