@@ -24,7 +24,7 @@ sealed secret, terraform var, or shell export.
 | `PEXELS_API_KEY` | pexels.com → your account → Image & Video API → **regenerate** (old one is in git history) | inside Secrets.xcconfig |
 | `SENTRY_DSN` (iOS) | Sentry → iOS project → Settings → Client Keys (DSN) | inside Secrets.xcconfig |
 | `GOOGLE_OAUTH_CLIENT_ID` | console.cloud.google.com → APIs & Services → Credentials → your iOS OAuth client ID (public by design) | inside Secrets.xcconfig |
-| api-env (whole `.env.production`) | Already on the live box: `/opt/stockplan/.env.production`. Contains DATABASE_PASSWORD, JWT_SECRET, APNS_*, FINNHUB_*, FMP_API_KEY, RESEND_API_KEY, USER_PII_ENCRYPTION_*, IBKR_*, SENTRY_* etc. | sealed secret (§E) |
+| api-env (whole `.env.production`) | Already on the live box: `/opt/stockplan/.env.production`. Contains DATABASE_PASSWORD, JWT_SECRET, APNS_*, FINNHUB_*, FMP_API_KEY, `FRED_API_KEY`, RESEND_API_KEY, USER_PII_ENCRYPTION_*, IBKR_*, SENTRY_* etc. | sealed secret (§E) |
 | api-env staging | The live box `.env.development` (dev values) | sealed secret (§E) |
 | web-env | web `.env.production` on box: SESSION_SECRET, SENTRY_DSN, POSTHOG_PROJECT_TOKEN, REVENUECAT_WEB_API_KEY. Generate SESSION_SECRET fresh: `openssl rand -hex 32` | sealed secret (§E) |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | You invent (must match DATABASE_USERNAME/PASSWORD in api-env) | sealed secret (§E) |
