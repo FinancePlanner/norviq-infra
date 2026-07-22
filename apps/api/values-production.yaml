@@ -1,7 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "a20095f000c4a1355ffc681870656d6c6f2a0a7d"
-
+  tag: "d504d6d535d54ca2a62b21b240897af3bfcbaec5"
 env:
   - name: DATABASE_HOST
     value: postgres.data.svc.cluster.local
@@ -75,26 +74,22 @@ env:
     value: openai
   - name: RECEIPT_OCR_MODEL
     value: openai/gpt-4o-mini
-
 persistence:
   enabled: true
   mountPath: /var/lib/norviq/tax-reports
   size: 5Gi
-
 additionalPersistence:
   - name: advanced-reports
     mountPath: /var/lib/norviq/advanced-reports
     size: 10Gi
     accessModes:
       - ReadWriteOnce
-
 resources:
   requests:
     cpu: 200m
     memory: 256Mi
   limits:
     memory: 450Mi
-
 ingress:
   hosts:
     - api.norviq.org
