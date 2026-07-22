@@ -14,6 +14,16 @@ env:
     value: json
   - name: PROMETHEUS_ENABLED
     value: "true"
+  - name: MACRO_ENABLED
+    value: "true"
+  - name: MACRO_ALLOW_STUB_FALLBACK
+    value: "true"
+  - name: MACRO_REFRESH_INTERVAL_SECONDS
+    value: "3600"
+  - name: MACRO_US_REFRESH_SECONDS
+    value: "21600"
+  - name: MACRO_INTL_REFRESH_SECONDS
+    value: "86400"
   - name: OBS_TRACES_ENABLED
     value: "true"
   - name: OBS_OTLP_ENDPOINT

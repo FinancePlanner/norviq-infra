@@ -15,6 +15,18 @@ env:
     value: json
   - name: PROMETHEUS_ENABLED
     value: "true"
+  - name: MACRO_ENABLED
+    value: "true"
+  # Production must fail visibly when live providers have not produced data;
+  # never present demonstration snapshots as current economic data.
+  - name: MACRO_ALLOW_STUB_FALLBACK
+    value: "false"
+  - name: MACRO_REFRESH_INTERVAL_SECONDS
+    value: "3600"
+  - name: MACRO_US_REFRESH_SECONDS
+    value: "21600"
+  - name: MACRO_INTL_REFRESH_SECONDS
+    value: "86400"
   - name: SCENARIO_PLANNING_ENABLED
     value: "true"
   - name: SCENARIO_HISTORY_REFRESH_SECONDS
