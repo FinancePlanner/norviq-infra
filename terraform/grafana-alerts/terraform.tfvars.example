@@ -1,0 +1,3 @@
+grafana_url         = "https://YOURSTACK.grafana.net"
+grafana_sa_token    = "glsa_..."
+loki_datasource_uid = "grafanacloud-logs"
