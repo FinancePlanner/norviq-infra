@@ -16,10 +16,12 @@ env:
     value: "true"
   - name: MACRO_ENABLED
     value: "true"
-  # Production must fail visibly when live providers have not produced data;
-  # never present demonstration snapshots as current economic data.
+  # Graceful degradation (2026-07-23 decision): if a live provider has produced
+  # no data, serve the stub snapshot (responses carry source:"stub") instead of
+  # a 503 so the economy screens never hard-fail. Live data resumes automatically
+  # once providers ingest.
   - name: MACRO_ALLOW_STUB_FALLBACK
-    value: "false"
+    value: "true"
   - name: MACRO_REFRESH_INTERVAL_SECONDS
     value: "3600"
   - name: MACRO_US_REFRESH_SECONDS
