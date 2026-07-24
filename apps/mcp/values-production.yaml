@@ -5,6 +5,10 @@ image:
 env:
   - name: BACKEND_BASE_URL
     value: http://api:8080
+  # Public authorization-server URL advertised in the RFC 9728 metadata;
+  # introspection keeps using the cluster-internal BACKEND_BASE_URL.
+  - name: BACKEND_PUBLIC_URL
+    value: https://api.norviq.org
   - name: MCP_PUBLIC_URL
     value: https://mcp.norviq.org
   - name: LISTEN_ADDR
