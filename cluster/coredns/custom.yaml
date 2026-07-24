@@ -1,7 +1,10 @@
-# MagicDNS bridge: resolve the Tailscale tailnet zone from inside the cluster
-# by forwarding it to the node's Tailscale resolver. This lets sealed config
-# reference stable MagicDNS names (e.g. hermes-vps-2.tail562587.ts.net) instead
-# of raw 100.x IPs that change whenever a VPS is rebuilt/re-registered.
+# Tailnet name resolution for pods. Sealed config references MagicDNS names
+# (e.g. hermes-vps-2.tail562587.ts.net) instead of raw 100.x IPs, so secrets
+# never need resealing when a VPS is rebuilt — only the hosts entry below
+# changes (plaintext, no kubeseal). The forward to the Tailscale resolver
+# (100.100.100.100) is kept as fallthrough, but pods cannot reach it on this
+# single-node k3s (tailscaled answers the host only), hence the static entry.
+# After a hermes VPS rebuild: update the IP here from `tailscale ip -4`.
 # k3s CoreDNS imports /etc/coredns/custom/*.server from this ConfigMap.
 apiVersion: v1
 kind: ConfigMap
@@ -13,5 +16,9 @@ data:
     tail562587.ts.net:53 {
         errors
         cache 30
+        hosts {
+            100.105.117.67 hermes-vps-2.tail562587.ts.net
+            fallthrough
+        }
         forward . 100.100.100.100
     }
