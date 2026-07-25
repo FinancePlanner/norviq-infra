@@ -50,8 +50,27 @@ jobs:
           git add apps/*/values-production.yaml
           git commit -m "Promote to production: ${{ steps.bump.outputs.summary }}"
           git push origin "$branch"
-          gh pr create \
-            --title "Promote to production: ${{ steps.bump.outputs.summary }}" \
-            --body "$(printf 'Staging tag(s) promoted to production values.\n\nMerging this PR deploys to the production namespace via ArgoCD.\n\nRollback: revert this PR.')"
+
+          # `gh pr create` fails when the org disallows Actions from opening
+          # PRs ("GitHub Actions is not permitted to create or approve pull
+          # requests"). The branch is already pushed and is the useful part,
+          # so surface a ready-made link instead of failing the run.
+          body="$(printf 'Staging tag(s) promoted to production values.\n\nMerging this PR deploys to the production namespace via ArgoCD.\n\nRollback: revert this PR.')"
+          if gh pr create --title "Promote to production: ${{ steps.bump.outputs.summary }}" --body "$body"; then
+            exit 0
+          fi
+
+          echo "::warning::Could not open the PR automatically (org policy blocks Actions from creating PRs). Branch $branch is pushed — open it manually."
+          {
+            echo "### Promote branch pushed: \`$branch\`"
+            echo ""
+            echo "Actions is not permitted to open PRs in this org, so finish with:"
+            echo ""
+            echo '```sh'
+            echo "gh pr create --head $branch --base main --title 'Promote to production: ${{ steps.bump.outputs.summary }}'"
+            echo '```'
+            echo ""
+            echo "Or: https://github.com/${{ github.repository }}/pull/new/$branch"
+          } >> "$GITHUB_STEP_SUMMARY"
         env:
           GH_TOKEN: ${{ github.token }}
