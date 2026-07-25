@@ -1,7 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "5769aa90e0234c8e016836babdc5f48997da2058" # set by promote PR
-
+  tag: "b0d0dca4a762946e4051351c2ccd685bb5283cc1" # set by promote PR
 env:
   - name: GO_ENV
     value: production
@@ -14,14 +13,12 @@ env:
     value: "true"
   - name: SENTRY_ENVIRONMENT
     value: production
-
 resources:
   requests:
     cpu: 50m
     memory: 48Mi
   limits:
     memory: 96Mi
-
 ingress:
   hosts:
     - norviq.org
