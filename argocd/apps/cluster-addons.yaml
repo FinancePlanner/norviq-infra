@@ -35,7 +35,7 @@ spec:
     targetRevision: main
     path: cluster
     directory:
-      include: "{namespaces.yaml,traefik/helmchartconfig.yaml,cert-manager/issuers.yaml,coredns/custom.yaml}"
+      include: "{namespaces.yaml,traefik/helmchartconfig.yaml,cert-manager/issuers.yaml,coredns/custom.yaml,networking/tailnet-snat.yaml}"
       recurse: true
   destination:
     server: https://kubernetes.default.svc
