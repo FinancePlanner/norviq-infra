@@ -1,0 +1,68 @@
+# Pod -> Tailscale tailnet egress.
+#
+# The node is a tailnet member and reaches 100.x fine, but pods cannot:
+# flannel masquerades pod egress to the node's PUBLIC address, and tailscaled
+# drops tunnel packets whose source is not a tailnet address. Symptom:
+# HermesSyncJob logs `connectTimeout` forever even though DNS resolves
+# (see cluster/coredns/custom.yaml for the DNS half of this).
+#
+# Fix: SNAT pod -> tailnet traffic to the node's own tailscale0 address,
+# inserted ahead of flannel's MASQUERADE rule. The loop re-asserts the rule
+# every 60s so a flannel/iptables flush cannot silently break hermes sync
+# again.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: tailnet-snat
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: tailnet-snat
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tailnet-snat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tailnet-snat
+    spec:
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: snat
+          image: alpine:3.20
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+          env:
+            - name: POD_CIDR
+              value: "10.42.0.0/16"
+            - name: TAILNET_CIDR
+              value: "100.64.0.0/10"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -u
+              apk add --no-cache iptables iproute2 >/dev/null 2>&1 || true
+              while :; do
+                TS_IP="$(ip -4 -o addr show dev tailscale0 2>/dev/null | awk '{print $4}' | cut -d/ -f1)"
+                if [ -n "${TS_IP:-}" ]; then
+                  if ! iptables -t nat -C POSTROUTING -s "$POD_CIDR" -d "$TAILNET_CIDR" \
+                       -j SNAT --to-source "$TS_IP" 2>/dev/null; then
+                    iptables -t nat -I POSTROUTING 1 -s "$POD_CIDR" -d "$TAILNET_CIDR" \
+                      -j SNAT --to-source "$TS_IP" &&
+                      echo "installed SNAT $POD_CIDR -> $TAILNET_CIDR via $TS_IP"
+                  fi
+                else
+                  echo "tailscale0 not present on this node; nothing to do"
+                fi
+                sleep 60
+              done
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
