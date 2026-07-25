@@ -1,7 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "6e483235218ea980592bfd0ef5b39b9451216a50" # set by promote PR
-
+  tag: "bd80997ab34f7eb9bd406c045b41ebbed1ba66bf" # set by promote PR
 env:
   - name: BACKEND_BASE_URL
     value: http://api:8080
@@ -13,14 +12,12 @@ env:
     value: https://mcp.norviq.org
   - name: LISTEN_ADDR
     value: ":8087"
-
 resources:
   requests:
     cpu: 50m
     memory: 64Mi
   limits:
     memory: 128Mi
-
 ingress:
   hosts:
     - mcp.norviq.org
