@@ -86,8 +86,10 @@ resource "hcloud_server" "k3s" {
   }
 
   user_data = templatefile("${path.module}/cloud-init/k3s-node.yaml.tftpl", {
-    k3s_version = var.k3s_version
-    volume_id   = hcloud_volume.pg_data.id
+    k3s_version       = var.k3s_version
+    volume_id         = hcloud_volume.pg_data.id
+    server_name       = var.server_name
+    tailscale_authkey = var.tailscale_authkey
   })
 
   # Volume is attached after boot; cloud-init waits for the device.

@@ -39,6 +39,19 @@ variable "k3s_version" {
   default     = "v1.35.6+k3s1"
 }
 
+variable "tailscale_authkey" {
+  description = <<-EOT
+    Reusable Tailscale auth key used to join the k3s node to the tailnet on
+    first boot. The node needs tailnet membership to reach the hermes VPS
+    (finance-api binds to its tailnet address only); pods then egress through
+    it via the tailnet-snat DaemonSet in cluster/networking. Leave empty to
+    skip the install.
+  EOT
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "pg_volume_size" {
   description = "Size (GB) of the detachable volume holding Postgres data"
   type        = number
