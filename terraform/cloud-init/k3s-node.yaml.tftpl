@@ -82,3 +82,12 @@ runcmd:
       --kubelet-arg=image-gc-low-threshold=45 \
       --kubelet-arg=max-pods=40 \
       --write-kubeconfig-mode 600
+  # Tailnet membership. The backend reaches the hermes VPS over Tailscale
+  # (its finance-api binds to a tailnet address only), and pods egress
+  # through this interface via the tailnet-snat DaemonSet in
+  # cluster/networking. Without it HermesSyncJob logs connectTimeout forever.
+  - |
+    if [ -n "${tailscale_authkey}" ]; then
+      curl -fsSL https://tailscale.com/install.sh | sh
+      tailscale up --authkey="${tailscale_authkey}" --hostname="${server_name}" --accept-dns=false
+    fi
