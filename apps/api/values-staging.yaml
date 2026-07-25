@@ -1,6 +1,6 @@
 # image.tag is bumped automatically by FinanceBackend CI on merge to main.
 image:
-  tag: "49c4695cecc795c24d6620bc76c758e582d8f554" # set by CI: <git-sha>
+  tag: "ecb6b12c7966edc8ec7b0c62a49ddf8748006a2c" # set by CI: <git-sha>
 env:
   - name: DATABASE_HOST
     value: postgres.data.svc.cluster.local
