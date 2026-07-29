@@ -1,6 +1,6 @@
 # image.tag is bumped automatically by StockPlanWeb CI on merge to main.
 image:
-  tag: "860c295b8b3e9e7415ace2dbab6f2a664906a1a8" # set by CI: <git-sha>
+  tag: "289fd673b9f6dcf6436f8f3f07148fda91cd3e3e" # set by CI: <git-sha>
 env:
   - name: GO_ENV
     value: production
