@@ -1,6 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "860c295b8b3e9e7415ace2dbab6f2a664906a1a8" # set by promote PR
+  tag: "289fd673b9f6dcf6436f8f3f07148fda91cd3e3e" # set by promote PR
 env:
   - name: GO_ENV
     value: production
