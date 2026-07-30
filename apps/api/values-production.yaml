@@ -1,6 +1,6 @@
 # image.tag only changes through a merged promote PR (.github/workflows/promote.yml).
 image:
-  tag: "ecb6b12c7966edc8ec7b0c62a49ddf8748006a2c"
+  tag: "8e560ddb8287f8e0c9379c51e1f1e0e1c93ebdea"
 env:
   - name: DATABASE_HOST
     value: postgres.data.svc.cluster.local
