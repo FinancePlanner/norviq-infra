@@ -18,12 +18,31 @@ kubectl create secret generic api-env -n production \
 Repeat per namespace/secret. Commit the output; ArgoCD applies it; the
 controller materializes the real `Secret`.
 
+## Adding one key to an existing secret
+
+Re-sealing the whole file needs every plaintext value and rewrites every line.
+To add a single key, encrypt just that value and paste the blob into
+`encryptedData`:
+
+```bash
+kubeseal --controller-name sealed-secrets-controller \
+         --controller-namespace kube-system --fetch-cert > /tmp/sealed-secrets.pem
+
+printf '%s' "$VALUE" | kubeseal --raw --cert /tmp/sealed-secrets.pem \
+  --namespace production --name api-env
+```
+
+Use `printf`, not `echo` — a trailing newline gets encrypted into the value. The
+blob is bound to the namespace + secret name, so staging needs its own run.
+`envFrom` is read only at pod start, so `kubectl rollout restart deploy/api -n production`
+after ArgoCD syncs.
+
 ## Inventory
 
 | File | Namespace | Keys |
 |---|---|---|
 | `staging/api-env.yaml` | staging | DATABASE_USERNAME, DATABASE_PASSWORD, JWT_SECRET, OAUTH_APPLE_*, APNs, Resend, AI_PROVIDER, AI_API_KEY or provider key, AI_BASE_URL, AI_MODEL, AI_CHAT_MODEL, AI_TIPS_MODEL, … |
-| `production/api-env.yaml` | production | same, production values, plus `FRED_API_KEY` for live US macro data |
+| `production/api-env.yaml` | production | same, production values, plus `FRED_API_KEY` for live US macro data, plus the insights chain `HERMES_BASE_URL` + `HERMES_API_TOKEN` (primary) and `DEEPAPI_API_KEY` + `DEEPAPI_API_BASE_URL` (fallback) |
 | `{staging,production}/report-download-signing.yaml` | matching environment | REPORT_DOWNLOAD_SIGNING_SECRET (unique 32-byte random value; signs private report links) |
 | `staging/mcp-introspection.yaml` | staging | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
 | `production/mcp-introspection.yaml` | production | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
