@@ -82,7 +82,7 @@ env:
   # production, since a rolling deploy briefly runs two pods and two pollers
   # would fight over getUpdates.
   - name: TELEGRAM_BOT_USERNAME
-    value: norviq_bot
+    value: Norviq_bot
 persistence:
   enabled: true
   mountPath: /var/lib/norviq/tax-reports
