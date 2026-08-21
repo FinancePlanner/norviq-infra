@@ -107,6 +107,13 @@ env:
     value: openai
   - name: RECEIPT_OCR_MODEL
     value: openai/gpt-4o-mini
+  # Telegram bot. The token and webhook secret are sealed in api-env; only the
+  # public handle is a plain value. Presence of TELEGRAM_WEBHOOK_SECRET is what
+  # selects webhook mode — the app refuses to start a long-polling bot in
+  # production, since a rolling deploy briefly runs two pods and two pollers
+  # would fight over getUpdates.
+  - name: TELEGRAM_BOT_USERNAME
+    value: Norviq_bot
 persistence:
   enabled: true
   mountPath: /var/lib/norviq/tax-reports

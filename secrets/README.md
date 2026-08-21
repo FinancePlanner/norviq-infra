@@ -42,7 +42,7 @@ after ArgoCD syncs.
 | File | Namespace | Keys |
 |---|---|---|
 | `staging/api-env.yaml` | staging | DATABASE_USERNAME, DATABASE_PASSWORD, JWT_SECRET, OAUTH_APPLE_*, APNs, Resend, AI_PROVIDER, AI_API_KEY or provider key, AI_BASE_URL, AI_MODEL, AI_CHAT_MODEL, AI_TIPS_MODEL, … |
-| `production/api-env.yaml` | production | same, production values, plus `FRED_API_KEY` for live US macro data, plus the insights chain `HERMES_BASE_URL` + `HERMES_API_TOKEN` (primary) and `DEEPAPI_API_KEY` + `DEEPAPI_API_BASE_URL` (fallback) |
+| `production/api-env.yaml` | production | same, production values, plus `FRED_API_KEY` for live US macro data, plus the insights chain `HERMES_BASE_URL` + `HERMES_API_TOKEN` (primary) and `DEEPAPI_API_KEY` + `DEEPAPI_API_BASE_URL` (fallback), plus `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` for the Telegram bot |
 | `{staging,production}/report-download-signing.yaml` | matching environment | REPORT_DOWNLOAD_SIGNING_SECRET (unique 32-byte random value; signs private report links) |
 | `staging/mcp-introspection.yaml` | staging | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
 | `production/mcp-introspection.yaml` | production | MCP_INTROSPECTION_SECRET (must equal the API secret value) |
