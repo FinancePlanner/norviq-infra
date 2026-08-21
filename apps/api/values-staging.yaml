@@ -14,6 +14,37 @@ env:
     value: json
   - name: PROMETHEUS_ENABLED
     value: "true"
+  # Retail sentiment (2026-08-21). Social scraping is ON here: with it off the
+  # DeepAPI path scores web-search snippets rather than actual retail posts, so
+  # the feature would look healthy while measuring the wrong population.
+  # Scrapes cost materially more than searches, which is what the tiered
+  # universe below is sized against.
+  - name: DEEPAPI_SOCIAL_SCRAPING_ENABLED
+    value: "true"
+  # Tier A: every symbol any user holds or watches. Full source set + LLM themes.
+  - name: SENTIMENT_USER_TIER_LIMIT
+    value: "500"
+  # Tier C: loud symbols nobody holds. Capped hard -- no user is asking for these.
+  - name: SENTIMENT_TRENDING_TIER_LIMIT
+    value: "50"
+  - name: SENTIMENT_WINDOW_DAYS
+    value: "7"
+  # Daily roll-up runs at 05:00 UTC, after the US close and before EU morning.
+  - name: SENTIMENT_AGGREGATION_HOUR_UTC
+    value: "5"
+  # The only per-symbol LLM spend. Bounded on top of AIDailyCap.
+  - name: SENTIMENT_MAX_THEME_SYMBOLS
+    value: "150"
+  # Raw posts are evidence with a short shelf life; the daily aggregates are the
+  # history worth keeping.
+  - name: SENTIMENT_POST_RETENTION_DAYS
+    value: "90"
+  - name: SENTIMENT_DAILY_RETENTION_DAYS
+    value: "730"
+  # A dry DeepAPI balance suppresses that provider for this long instead of
+  # being rediscovered on every one of the hundreds of calls a run makes.
+  - name: PROVIDER_CREDIT_COOLDOWN_SECONDS
+    value: "21600"
   - name: MACRO_ENABLED
     value: "true"
   - name: MACRO_ALLOW_STUB_FALLBACK
