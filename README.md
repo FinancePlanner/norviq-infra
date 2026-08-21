@@ -1,3 +1,22 @@
+> # ⚠️ Archived — do not edit
+>
+> **All Norviq infrastructure now lives in [`LuminaVault/LuminaVaultInfra`](https://github.com/LuminaVault/LuminaVaultInfra).**
+>
+> Every ArgoCD application on the cluster sources from that repository. Nothing
+> here is deployed, and nothing here has been deployed for some time — changes
+> committed to this repo have no effect on production.
+>
+> | Here | There |
+> |---|---|
+> | `apps/api/values-*.yaml` | `apps/norviq/api/values-*.yaml` |
+> | `secrets/production/api-env.yaml` | `secrets/norviq/production/api-env.yaml` |
+> | namespace `production` | namespace **`norviq`** (`production` belongs to LuminaVault) |
+>
+> Sealed secrets are bound to namespace *and* name, so blobs sealed against
+> `production` cannot be reused for `norviq`.
+>
+> The Terraform state here records a server that no longer exists.
+
 # norviq-infra
 
 GitOps + IaC for the Norviq/StockPlan platform: one Hetzner VPS (2 vCPU/4 GB)
