@@ -2,6 +2,8 @@
 >
 > **All Norviq infrastructure now lives in [`LuminaVault/LuminaVaultInfra`](https://github.com/LuminaVault/LuminaVaultInfra).**
 >
+> Locally: **`~/Work/production/platform/infra`**
+>
 > Every ArgoCD application on the cluster sources from that repository. Nothing
 > here is deployed, and nothing here has been deployed for some time — changes
 > committed to this repo have no effect on production.
